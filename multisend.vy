@@ -1,5 +1,5 @@
 # Contract multisend
-# This contract is meant to send ethereum
+# This contract is meant to distribute ethereum
 # and ethereum tokens to several addresses
 # in at most two ethereum transactions
 
@@ -16,8 +16,6 @@ class Token():
 
 # Variables
 owner: public(address)
-sendTokenFee: public(wei_value) # wei
-sendEthFee: public(wei_value) # wei
 
 
 # Functions
@@ -36,33 +34,22 @@ def __init__():
 # return change back to the owner
 @public
 @payable
-def multiSendEther(addresses: address[100], amounts: wei_value[100]) -> bool:
+def multiSendEther(addresses: address[5000], amounts: wei_value[5000]) -> bool:
     sender: address = msg.sender
     total: wei_value = as_wei_value(0, "wei")
     zero_wei: wei_value = total
     value_sent: wei_value = msg.value
-    
-    # calculate total
-    for n in range(100):
-        if(amounts[n] <= zero_wei):
-            break
-        total += amounts[n]
-        
-    # required amount is amount plus fee
-    requiredAmount: wei_value = total + (self.sendEthFee)
-
-    # Check if sufficient eth amount was sent
-    assert value_sent >= requiredAmount
 
     # Distribute ethereum
-    for n in range(100):
+    for n in range(5000):
         if(amounts[n] <= zero_wei):
             break
         send(addresses[n], as_wei_value(amounts[n], "wei"))
+        total += amounts[n]
 
     # Send back excess amount
-    if value_sent > requiredAmount:
-        change: wei_value = value_sent - requiredAmount
+    if value_sent > total:
+        change: wei_value = value_sent - total
         send(sender, as_wei_value(change, "wei"))
 
     return True
@@ -74,33 +61,16 @@ def multiSendEther(addresses: address[100], amounts: wei_value[100]) -> bool:
 # distribute ether if sent ether is suficient
 # return change back to the owner
 @public
-@payable
-def multiSendToken(tokenAddress: address, addresses: address[100], amounts: uint256[100]) -> bool:
+def multiSendToken(tokenAddress: address, addresses: address[5000], amounts: uint256[5000]) -> bool:
     sender: address = msg.sender
     total: int128 = 0
     value_sent: wei_value = msg.value
-    for amount in amounts:
-        total += convert(amount, int128)
-
-    requiredWeiAmount: wei_value = self.sendTokenFee
-
-    # Check if the correct amount of ether was sent
-    assert value_sent >= requiredWeiAmount
-
-    # Check if this contract is allowed to transfer
-    # the required amount of token
-    assert Token(tokenAddress).allowance(sender, self) >= convert(total, uint256)
 
     # Distribute the token
-    for n in range(100):
+    for n in range(5000):
         if amounts[n] <= 0:
             break
         assert Token(tokenAddress).transferFrom(sender, addresses[n], amounts[n])
-
-    # Send back excess amount
-    if value_sent > requiredWeiAmount:
-        change: wei_value = value_sent - requiredWeiAmount
-        send(sender, as_wei_value(change, "wei"))
 
     return True
 
@@ -114,7 +84,7 @@ def getBalance(_address: address) -> wei_value:
 
 @public
 @constant
-def calc_total(numbs: wei_value[100]) -> wei_value:
+def calc_total(numbs: wei_value[5000]) -> wei_value:
     total: wei_value = as_wei_value(0, "wei")
     zero_wei: wei_value = total
     for numb in numbs:
@@ -126,7 +96,7 @@ def calc_total(numbs: wei_value[100]) -> wei_value:
     
 @public
 @constant
-def find(numbs: wei_value[100], n: int128) -> wei_value:
+def find(numbs: wei_value[5000], n: int128) -> wei_value:
     return numbs[n]
 
 @public
@@ -145,20 +115,6 @@ def withdrawEther(_to: address, _value: uint256) -> bool:
 def withdrawToken(tokenAddress: address, _to: address, _value: uint256) -> bool:
     assert msg.sender == self.owner
     assert Token(tokenAddress).transfer(_to, _value)
-    return True
-
-
-@public
-def setSendTokenFee(_sendTokenFee: uint256) -> bool:
-    assert msg.sender == self.owner
-    self.sendTokenFee = as_wei_value(_sendTokenFee, "wei")
-    return True
-
-
-@public
-def setSendEthFee(_sendEthFee: wei_value) -> bool:
-    assert msg.sender == self.owner
-    self.sendEthFee = _sendEthFee
     return True
 
 
